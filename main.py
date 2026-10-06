@@ -15,7 +15,7 @@ def main() -> None:
     scheduler = Scheduler()
 
     # 1. Create Owner
-    owner = Owner(name="Alex")
+    owner = Owner(name="Gustavo")
 
     # 2. Create Pets
     cooper = Pet(name="Cooper", species="Dog", age=4)

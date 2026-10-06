@@ -96,7 +96,7 @@ python -m pytest --cov=pawpal_system --cov-report=term-missing
 Below is the output from running `main.py` — a walkthrough of the system's core features:
 
 ```
-🐾 WELCOME TO PAWPAL+ DEMO | Owner: Alex 🐾
+🐾 WELCOME TO PAWPAL+ DEMO | Owner: Gustavo
 ============================================================
 
 📅 TODAY'S SCHEDULE (Sorted by Time)
