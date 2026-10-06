@@ -40,6 +40,7 @@ def sample_owner(today: date) -> Owner:
 # Task tests
 # ----------------------------------------------------------------------
 
+
 def test_mark_complete_changes_status(today):
     t = Task("Walk", "07:00", today)
     assert not t.completed
@@ -72,6 +73,7 @@ def test_task_to_dict_roundtrip(today):
 # ----------------------------------------------------------------------
 # Pet tests
 # ----------------------------------------------------------------------
+
 
 def test_add_task_increases_count(today):
     pet = Pet("Cooper", "Dog", 4)
@@ -107,6 +109,7 @@ def test_pet_to_dict_roundtrip(today):
 # Owner tests
 # ----------------------------------------------------------------------
 
+
 def test_owner_get_all_tasks_combines_pets(sample_owner):
     all_tasks = sample_owner.get_all_tasks()
     assert len(all_tasks) == 4
@@ -128,6 +131,7 @@ def test_owner_to_dict_roundtrip(sample_owner):
 # ----------------------------------------------------------------------
 # Scheduler: sorting tests
 # ----------------------------------------------------------------------
+
 
 def test_scheduler_sort_by_time(sample_owner):
     s = Scheduler()
@@ -160,6 +164,7 @@ def test_sort_by_priority_ties_broken_by_time(today):
 # Scheduler: filtering tests
 # ----------------------------------------------------------------------
 
+
 def test_filter_by_completion(sample_owner):
     s = Scheduler()
     tasks = sample_owner.get_all_tasks()
@@ -185,6 +190,7 @@ def test_filter_by_pet_name_returns_empty_for_unknown(sample_owner):
 # ----------------------------------------------------------------------
 # Scheduler: conflict & overlap tests
 # ----------------------------------------------------------------------
+
 
 def test_detect_conflicts_finds_duplicates(sample_owner):
     s = Scheduler()
@@ -220,6 +226,7 @@ def test_detect_overlaps_no_overlap_exact_boundary(today):
 # Scheduler: recurring & next slot tests
 # ----------------------------------------------------------------------
 
+
 def test_handle_recurring_daily(today):
     s = Scheduler()
     t = Task("Walk", "07:00", today, frequency="daily")
@@ -252,8 +259,7 @@ def test_find_next_available_slot_after_dense_morning(today):
     s = Scheduler()
     # Dense tasks from 06:00 to 10:00 (30-min blocks back to back)
     tasks = [
-        Task(f"t{i}", f"{6 + i // 2:02d}:{(i % 2) * 30:02d}", today)
-        for i in range(8)
+        Task(f"t{i}", f"{6 + i // 2:02d}:{(i % 2) * 30:02d}", today) for i in range(8)
     ]
     # First free 30-min gap should be 10:00
     assert s.find_next_available_slot(tasks, 30) == "10:00"
@@ -272,6 +278,7 @@ def test_find_next_available_slot_returns_none_when_full(today):
 # ----------------------------------------------------------------------
 # JSON persistence tests
 # ----------------------------------------------------------------------
+
 
 def test_json_save_and_load_roundtrip(sample_owner, tmp_path):
     filepath = tmp_path / "test_data.json"

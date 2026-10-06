@@ -153,9 +153,7 @@ def main() -> None:
             incomplete_tasks = scheduler.filter_by_completion(
                 all_tasks, completed=False
             )
-            completed_tasks = scheduler.filter_by_completion(
-                all_tasks, completed=True
-            )
+            completed_tasks = scheduler.filter_by_completion(all_tasks, completed=True)
 
             col1, col2, col3 = st.columns(3)
             col1.metric("Total Tasks", len(all_tasks))

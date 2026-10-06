@@ -3,7 +3,7 @@
 import json
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from typing import Literal
+from typing import ClassVar, Literal
 
 
 @dataclass
@@ -120,7 +120,11 @@ class Scheduler:
     """Provides utility methods for sorting, filtering, and checking schedules."""
 
     # Priority ranking — smaller number = higher priority
-    _PRIORITY_ORDER: dict[str, int] = {"high": 0, "medium": 1, "low": 2}
+    _PRIORITY_ORDER: ClassVar[dict[str, int]] = {
+        "high": 0,
+        "medium": 1,
+        "low": 2,
+    }
 
     def sort_by_time(self, tasks: list[Task]) -> list[Task]:
         """Return tasks sorted chronologically by their time attribute."""
@@ -145,18 +149,14 @@ class Scheduler:
         """Filter tasks based on their completion status."""
         return [t for t in tasks if t.completed == completed]
 
-    def filter_by_pet_name(
-        self, owner: Owner, pet_name: str
-    ) -> list[Task]:
+    def filter_by_pet_name(self, owner: Owner, pet_name: str) -> list[Task]:
         """Filter tasks belonging to a specific pet by name."""
         for pet in owner.pets:
             if pet.name == pet_name:
                 return pet.get_tasks()
         return []
 
-    def detect_conflicts(
-        self, tasks: list[Task]
-    ) -> list[tuple[Task, Task]]:
+    def detect_conflicts(self, tasks: list[Task]) -> list[tuple[Task, Task]]:
         """Identify and return pairs of tasks scheduled for the same time."""
         conflicts: list[tuple[Task, Task]] = []
         n = len(tasks)
@@ -200,19 +200,19 @@ class Scheduler:
         Returns:
             Start time as "HH:MM", or "None available today".
         """
-        DAY_START = 6 * 60
-        DAY_END = 22 * 60
+        day_start = 6 * 60
+        day_end = 22 * 60
 
         # Convert "HH:MM" strings to minutes-since-midnight
         task_times: list[int] = []
         for task in tasks:
             hrs, mins = map(int, task.time.split(":"))
             time_in_mins = hrs * 60 + mins
-            if DAY_START <= time_in_mins < DAY_END:
+            if day_start <= time_in_mins < day_end:
                 task_times.append(time_in_mins)
 
         task_times.sort()
-        current_time = DAY_START
+        current_time = day_start
 
         for task_start in task_times:
             # If the gap before this task is big enough, use it
@@ -223,15 +223,13 @@ class Scheduler:
             if task_start >= current_time:
                 current_time = task_start + 30
 
-        # Check the final window before DAY_END
-        if DAY_END - current_time >= duration_minutes:
+        # Check the final window before day_end
+        if day_end - current_time >= duration_minutes:
             return f"{current_time // 60:02d}:{current_time % 60:02d}"
 
         return "None available today"
 
-    def detect_overlaps(
-        self, tasks: list[Task]
-    ) -> list[tuple[Task, Task]]:
+    def detect_overlaps(self, tasks: list[Task]) -> list[tuple[Task, Task]]:
         """
         Return pairs of tasks whose 30-minute time windows overlap.
 
@@ -256,10 +254,10 @@ class Scheduler:
             start_a = to_minutes(task_a.time)
             end_a = start_a + 30
 
-            for task_b in sorted_tasks[i + 1:]:
+            for task_b in sorted_tasks[i + 1 :]:
                 start_b = to_minutes(task_b.time)
 
-                # Sorted list → once we pass task_a's window, no more overlaps
+                # Sorted list -> once we pass task_a's window, no more overlaps
                 if start_b >= end_a:
                     break
 
@@ -271,6 +269,7 @@ class Scheduler:
 # ----------------------------------------------------------------------
 # JSON Persistence (Stretch Feature)
 # ----------------------------------------------------------------------
+
 
 def save_owner_to_json(owner: Owner, filepath: str) -> None:
     """Serialize an Owner (and all its pets and tasks) to a JSON file."""

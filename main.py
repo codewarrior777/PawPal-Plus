@@ -110,8 +110,7 @@ def main() -> None:
     print("\n⭐ PRIORITY SCHEDULE (High → Medium → Low, then Time)\n")
     priority_sorted = scheduler.sort_by_priority(all_tasks)
     priority_rows = [
-        [t.priority.upper(), t.time, t.description, pet_for(t)]
-        for t in priority_sorted
+        [t.priority.upper(), t.time, t.description, pet_for(t)] for t in priority_sorted
     ]
     print(
         tabulate(
@@ -127,8 +126,7 @@ def main() -> None:
     print("\n⏳ INCOMPLETE TASKS\n")
     incomplete = scheduler.filter_by_completion(all_tasks, completed=False)
     incomplete_rows = [
-        [t.time, t.description, pet_for(t), t.priority.upper()]
-        for t in incomplete
+        [t.time, t.description, pet_for(t), t.priority.upper()] for t in incomplete
     ]
     print(
         tabulate(
