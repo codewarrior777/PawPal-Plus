@@ -1,5 +1,6 @@
 """Module for managing pets, tasks, owners, and scheduling in PawPal+."""
 
+import json
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Literal
@@ -18,6 +19,27 @@ class Task:
     def mark_complete(self) -> None:
         """Mark the task as completed."""
         self.completed = True
+
+    def to_dict(self) -> dict:
+        """Serialize this Task to a JSON-compatible dict."""
+        return {
+            "description": self.description,
+            "time": self.time,
+            "due_date": self.due_date.isoformat(),
+            "completed": self.completed,
+            "frequency": self.frequency,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Task":
+        """Reconstruct a Task from a dict (e.g. loaded from JSON)."""
+        return cls(
+            description=data["description"],
+            time=data["time"],
+            due_date=date.fromisoformat(data["due_date"]),
+            completed=data.get("completed", False),
+            frequency=data.get("frequency", "once"),
+        )
 
 
 @dataclass
@@ -41,6 +63,26 @@ class Pet:
         """Retrieve pending tasks that are not yet marked as completed."""
         return [t for t in self.tasks if not t.completed]
 
+    def to_dict(self) -> dict:
+        """Serialize this Pet (and its tasks) to a JSON-compatible dict."""
+        return {
+            "name": self.name,
+            "species": self.species,
+            "age": self.age,
+            "tasks": [task.to_dict() for task in self.tasks],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Pet":
+        """Reconstruct a Pet (and its tasks) from a dict."""
+        tasks = [Task.from_dict(t) for t in data.get("tasks", [])]
+        return cls(
+            name=data["name"],
+            species=data["species"],
+            age=data["age"],
+            tasks=tasks,
+        )
+
 
 @dataclass
 class Owner:
@@ -56,6 +98,19 @@ class Owner:
     def get_all_tasks(self) -> list[Task]:
         """Retrieve a combined list of all tasks across all owned pets."""
         return [task for pet in self.pets for task in pet.tasks]
+
+    def to_dict(self) -> dict:
+        """Serialize this Owner (and its pets) to a JSON-compatible dict."""
+        return {
+            "name": self.name,
+            "pets": [pet.to_dict() for pet in self.pets],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Owner":
+        """Reconstruct an Owner (and its pets) from a dict."""
+        pets = [Pet.from_dict(p) for p in data.get("pets", [])]
+        return cls(name=data["name"], pets=pets)
 
 
 class Scheduler:
@@ -108,3 +163,34 @@ class Scheduler:
             completed=False,
             frequency=task.frequency,
         )
+
+
+# ----------------------------------------------------------------------
+# JSON Persistence (Stretch Feature)
+# ----------------------------------------------------------------------
+
+def save_owner_to_json(owner: Owner, filepath: str) -> None:
+    """
+    Serialize an Owner (and all its pets and tasks) to a JSON file.
+
+    Args:
+        owner: The Owner instance to save.
+        filepath: Destination file path (e.g. "data.json").
+    """
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(owner.to_dict(), f, indent=4, ensure_ascii=False)
+
+
+def load_owner_from_json(filepath: str) -> Owner:
+    """
+    Load an Owner from a JSON file.
+
+    If the file does not exist, returns a new empty Owner named "Alex"
+    so the app can start cleanly on first run.
+    """
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return Owner.from_dict(data)
+    except FileNotFoundError:
+        return Owner(name="Alex")
