@@ -10,6 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.12", "3.13"]
 
@@ -24,12 +25,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest-cov
+          python -m pip install -r requirements.txt pytest-cov
 
       - name: Run tests with coverage
         run: |
-          pytest --cov=pawpal_system --cov-report=term-missing -v
+          python -m pytest --cov=pawpal_system --cov-report=term-missing -v
 
-      - name: Verify 100% coverage threshold
+      - name: Verify coverage threshold (95%)
         run: |
-          pytest --cov=pawpal_system --cov-fail-under=95
+          python -m pytest --cov=pawpal_system --cov-fail-under=95 --no-header -q
