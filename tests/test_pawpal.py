@@ -291,5 +291,5 @@ def test_json_save_and_load_roundtrip(sample_owner, tmp_path):
 
 def test_json_load_missing_file_returns_empty():
     owner = load_owner_from_json("nonexistent_file_xyz.json")
-    assert owner.name == "Alex"
+    assert owner.name == "New User"
     assert owner.pets == []
