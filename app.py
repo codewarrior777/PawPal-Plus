@@ -76,9 +76,7 @@ def main() -> None:
     st.sidebar.header(f"👤 {owner.name}")
 
     with st.sidebar.expander("✏️ Edit name"):
-        new_name = st.text_input(
-            "New name", value=owner.name, key="edit_name_input"
-        )
+        new_name = st.text_input("New name", value=owner.name, key="edit_name_input")
         if st.button("Save name"):
             if new_name.strip():
                 owner.name = new_name.strip()
@@ -169,9 +167,7 @@ def main() -> None:
 
             if submitted_pet:
                 if pet_name.strip():
-                    new_pet = Pet(
-                        name=pet_name.strip(), species=species, age=int(age)
-                    )
+                    new_pet = Pet(name=pet_name.strip(), species=species, age=int(age))
                     owner.add_pet(new_pet)
                     st.success(f"Added **{new_pet.name}** to your pets!")
                     st.rerun()
@@ -203,12 +199,8 @@ def main() -> None:
             with st.form("add_task_form", clear_on_submit=True):
                 description = st.text_input("Task Description")
                 task_time = st.time_input("Task Time")
-                frequency = st.selectbox(
-                    "Frequency", ["once", "daily", "weekly"]
-                )
-                priority = st.selectbox(
-                    "Priority", ["high", "medium", "low"], index=1
-                )
+                frequency = st.selectbox("Frequency", ["once", "daily", "weekly"])
+                priority = st.selectbox("Priority", ["high", "medium", "low"], index=1)
                 submitted_task = st.form_submit_button("Add Task")
 
                 if submitted_task:
@@ -223,11 +215,7 @@ def main() -> None:
                         )
 
                         target_pet = next(
-                            (
-                                p
-                                for p in owner.pets
-                                if p.name == selected_pet_name
-                            ),
+                            (p for p in owner.pets if p.name == selected_pet_name),
                             None,
                         )
                         if target_pet:
@@ -254,9 +242,7 @@ def main() -> None:
             incomplete_tasks = scheduler.filter_by_completion(
                 all_tasks, completed=False
             )
-            completed_tasks = scheduler.filter_by_completion(
-                all_tasks, completed=True
-            )
+            completed_tasks = scheduler.filter_by_completion(all_tasks, completed=True)
 
             col1, col2, col3 = st.columns(3)
             col1.metric("Total Tasks", len(all_tasks))

@@ -229,9 +229,7 @@ class Scheduler:
 
         return "None available today"
 
-    def detect_overlaps(
-        self, tasks: list[Task]
-    ) -> list[tuple[Task, Task]]:
+    def detect_overlaps(self, tasks: list[Task]) -> list[tuple[Task, Task]]:
         """
         Return pairs of tasks whose 30-minute time windows overlap.
 
@@ -271,6 +269,7 @@ class Scheduler:
 # ----------------------------------------------------------------------
 # JSON Persistence (Stretch Feature)
 # ----------------------------------------------------------------------
+
 
 def save_owner_to_json(owner: Owner, filepath: str) -> None:
     """Serialize an Owner (and all its pets and tasks) to a JSON file."""
