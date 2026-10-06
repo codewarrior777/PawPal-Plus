@@ -184,6 +184,51 @@ class Scheduler:
             priority=task.priority,
         )
 
+    def find_next_available_slot(
+        self, tasks: list[Task], duration_minutes: int = 30
+    ) -> str:
+        """
+        Find the earliest free time slot of the given duration.
+
+        Working hours are 06:00 - 22:00. Assumes each existing task
+        occupies 30 minutes (Task has no duration field).
+
+        Args:
+            tasks: List of Task objects (uses their .time attribute).
+            duration_minutes: Required block of free time in minutes.
+
+        Returns:
+            Start time as "HH:MM", or "None available today".
+        """
+        DAY_START = 6 * 60
+        DAY_END = 22 * 60
+
+        # Convert "HH:MM" strings to minutes-since-midnight
+        task_times: list[int] = []
+        for task in tasks:
+            hrs, mins = map(int, task.time.split(":"))
+            time_in_mins = hrs * 60 + mins
+            if DAY_START <= time_in_mins < DAY_END:
+                task_times.append(time_in_mins)
+
+        task_times.sort()
+        current_time = DAY_START
+
+        for task_start in task_times:
+            # If the gap before this task is big enough, use it
+            if task_start - current_time >= duration_minutes:
+                return f"{current_time // 60:02d}:{current_time % 60:02d}"
+
+            # Advance past the current task (assumes 30-min tasks)
+            if task_start >= current_time:
+                current_time = task_start + 30
+
+        # Check the final window before DAY_END
+        if DAY_END - current_time >= duration_minutes:
+            return f"{current_time // 60:02d}:{current_time % 60:02d}"
+
+        return "None available today"
+
 
 # ----------------------------------------------------------------------
 # JSON Persistence (Stretch Feature)

@@ -192,7 +192,25 @@ def main() -> None:
     )
 
     # ------------------------------------------------------------------
-    # Feature 6: Demo Recurring Task Handler
+    # Feature 6: Next Available Slot (STRETCH: Third Algorithm)
+    # ------------------------------------------------------------------
+    print("\n🕐 NEXT AVAILABLE SLOT\n")
+    next_slot_30 = scheduler.find_next_available_slot(all_tasks, 30)
+    next_slot_60 = scheduler.find_next_available_slot(all_tasks, 60)
+    slot_rows = [
+        ["30 minutes", next_slot_30],
+        ["60 minutes", next_slot_60],
+    ]
+    print(
+        tabulate(
+            slot_rows,
+            headers=["Duration", "Earliest Available Start"],
+            tablefmt="fancy_grid",
+        )
+    )
+
+    # ------------------------------------------------------------------
+    # Feature 7: Demo Recurring Task Handler
     # ------------------------------------------------------------------
     print("\n🔄 RECURRING TASK GENERATION\n")
     next_walk = scheduler.handle_recurring(task1)
