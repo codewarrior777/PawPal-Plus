@@ -1,5 +1,11 @@
 # 🐾 PawPal+ — Smart Pet Care Management System
 
+[![Tests](https://img.shields.io/badge/tests-28%20passing-brightgreen)](https://github.com/codewarrior777/PawPal-Plus/actions)
+[![Lint](https://github.com/codewarrior777/PawPal-Plus/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/codewarrior777/PawPal-Plus/actions/workflows/lint.yml)
+[![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/codewarrior777/PawPal-Plus)
+[![Python](https://img.shields.io/badge/python-3.12%2B-blue)](https://github.com/codewarrior777/PawPal-Plus)
+[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/codewarrior777/PawPal-Plus)
+
 A CLI-first Python application for managing pets, their care tasks, and scheduling them intelligently across multiple pets.
 
 **Course:** AI 110 — Foundations of AI Engineering
@@ -75,6 +81,12 @@ python -m streamlit run app.py
 
 ```bash
 python -m pytest -v
+```
+
+### Run tests with coverage
+
+```bash
+python -m pytest --cov=pawpal_system --cov-report=term-missing
 ```
 
 ---
@@ -204,9 +216,20 @@ If `data.json` does not exist, a new empty owner is created automatically.
 
 ---
 
+## 📊 Dashboard (Streamlit UI)
+
+The sidebar shows live stats:
+
+- **Total Tasks** — count of all tasks across all pets.
+- **Bar chart** — task distribution by priority (HIGH / MEDIUM / LOW).
+
+Powered by Streamlit's built-in `st.bar_chart()`. No extra charting library needed.
+
+---
+
 ## 🧠 Scheduler Algorithms
 
-The `Scheduler` class implements seven algorithms:
+The `Scheduler` class implements eight algorithms:
 
 | Method | Purpose | Complexity |
 |---|---|---|
@@ -225,22 +248,63 @@ See `reflection.md` for design tradeoffs and complexity notes.
 
 ## 🧪 Test Results
 
+28 tests, 100% coverage on `pawpal_system.py`:
+
 ```
-$ python -m pytest -v
+$ python -m pytest --cov=pawpal_system --cov-report=term-missing -v
 ============================= test session starts =============================
-collected 6 items
+collected 28 items
 
-tests/test_pawpal.py::test_mark_complete_changes_status PASSED          [ 16%]
-tests/test_pawpal.py::test_add_task_increases_count PASSED              [ 33%]
-tests/test_pawpal.py::test_get_incomplete_tasks_filters_correctly PASSED [ 50%]
-tests/test_pawpal.py::test_owner_get_all_tasks_combines_pets PASSED     [ 66%]
-tests/test_pawpal.py::test_scheduler_sort_by_time PASSED                [ 83%]
-tests/test_pawpal.py::test_scheduler_detect_conflicts PASSED            [100%]
+tests/test_pawpal.py::test_mark_complete_changes_status PASSED          [  3%]
+tests/test_pawpal.py::test_task_default_priority_is_medium PASSED       [  7%]
+tests/test_pawpal.py::test_task_default_frequency_is_once PASSED        [ 10%]
+tests/test_pawpal.py::test_task_to_dict_roundtrip PASSED                [ 14%]
+tests/test_pawpal.py::test_add_task_increases_count PASSED              [ 17%]
+tests/test_pawpal.py::test_get_incomplete_tasks_filters_correctly PASSED [ 21%]
+tests/test_pawpal.py::test_pet_to_dict_roundtrip PASSED                 [ 25%]
+tests/test_pawpal.py::test_owner_get_all_tasks_combines_pets PASSED     [ 28%]
+tests/test_pawpal.py::test_owner_get_all_tasks_empty PASSED             [ 32%]
+tests/test_pawpal.py::test_owner_to_dict_roundtrip PASSED               [ 35%]
+tests/test_pawpal.py::test_scheduler_sort_by_time PASSED                [ 39%]
+tests/test_pawpal.py::test_sort_by_priority_high_before_low PASSED      [ 42%]
+tests/test_pawpal.py::test_sort_by_priority_ties_broken_by_time PASSED  [ 46%]
+tests/test_pawpal.py::test_filter_by_completion PASSED                  [ 50%]
+tests/test_pawpal.py::test_filter_by_pet_name PASSED                    [ 53%]
+tests/test_pawpal.py::test_filter_by_pet_name_returns_empty_for_unknown PASSED [ 57%]
+tests/test_pawpal.py::test_detect_conflicts_finds_duplicates PASSED     [ 60%]
+tests/test_pawpal.py::test_detect_conflicts_empty_list PASSED           [ 64%]
+tests/test_pawpal.py::test_detect_overlaps_within_30_min_window PASSED  [ 67%]
+tests/test_pawpal.py::test_detect_overlaps_no_overlap_exact_boundary PASSED [ 71%]
+tests/test_pawpal.py::test_handle_recurring_daily PASSED                [ 75%]
+tests/test_pawpal.py::test_handle_recurring_weekly PASSED               [ 78%]
+tests/test_pawpal.py::test_handle_recurring_once_returns_none PASSED    [ 82%]
+tests/test_pawpal.py::test_find_next_available_slot_returns_first_gap PASSED [ 85%]
+tests/test_pawpal.py::test_find_next_available_slot_after_dense_morning PASSED [ 89%]
+tests/test_pawpal.py::test_find_next_available_slot_returns_none_when_full PASSED [ 92%]
+tests/test_pawpal.py::test_json_save_and_load_roundtrip PASSED          [ 96%]
+tests/test_pawpal.py::test_json_load_missing_file_returns_empty PASSED  [100%]
 
-============================== 6 passed in 1.11s ==============================
+---------- coverage: platform win32, python 3.14.0-final-0 -----------
+Name              Stmts   Miss  Cover   Missing
+-----------------------------------------------
+pawpal_system.py    116      0   100%
+-----------------------------------------------
+TOTAL               116      0   100%
+============================== 28 passed in 1.40s ==============================
 ```
 
-**Confidence level in the system:** ⭐⭐⭐⭐☆ (4/5) — all core behaviors are tested; edge cases for `find_next_available_slot` and `detect_overlaps` are manually verified but not automated.
+**Confidence level in the system:** ⭐⭐⭐⭐⭐ (5/5) — every line of `pawpal_system.py` is covered by an automated test.
+
+---
+
+## 🔄 Continuous Integration
+
+This project runs tests and linting on every push via GitHub Actions:
+
+- **Tests workflow** — runs the full pytest suite on Python 3.12 and 3.13, verifies ≥95% coverage.
+- **Lint workflow** — runs `ruff check` and `ruff format --check`.
+
+Both workflows are shown as badges at the top of this README.
 
 ---
 
@@ -258,23 +322,30 @@ tests/test_pawpal.py::test_scheduler_detect_conflicts PASSED            [100%]
 
 ```
 PawPal-Plus/
+├── .github/
+│   └── workflows/
+│       ├── tests.yml          # CI: pytest on Python 3.12 + 3.13
+│       └── lint.yml           # CI: ruff check + format
 ├── diagrams/
-│   ├── README.md           # Rendered UML diagram
-│   └── uml_initial.mmd     # Mermaid source
+│   ├── README.md              # Rendered UML diagram
+│   └── uml_initial.mmd        # Mermaid source
 ├── tests/
-│   └── test_pawpal.py      # pytest suite (6 tests)
-├── app.py                  # Streamlit UI
-├── main.py                 # CLI demo script
-├── pawpal_system.py        # Core domain logic (4 classes + JSON persistence)
-├── demo_output.txt         # Saved output of `python main.py`
-├── reflection.md           # Design tradeoffs + AI collaboration notes
-├── ai_interactions.md      # Agent workflow + AI model comparison
-├── requirements.txt        # Dependencies (streamlit, pytest, tabulate)
-└── README.md               # This file
+│   └── test_pawpal.py         # pytest suite (28 tests, 100% coverage)
+├── app.py                     # Streamlit UI
+├── main.py                    # CLI demo script
+├── pawpal_system.py           # Core domain logic (4 classes + JSON persistence)
+├── demo_output.txt            # Saved output of `python main.py`
+├── reflection.md              # Design tradeoffs + AI collaboration notes
+├── ai_interactions.md         # Agent workflow + AI model comparison
+├── requirements.txt           # Dependencies
+├── ruff.toml                  # Ruff linter config
+├── .gitignore
+├── .pre-commit-config.yaml    # Pre-commit hooks (optional)
+└── README.md                  # This file
 ```
 
 ---
 
 ## 🙏 Credits
 
-Designed and built as part of AI 110 — Foundations of AI Engineering. AI assistants (ChatGPT, Gemini) were used as design collaborators; all code was reviewed, tested, and refined by the student.
+Designed and built as part of AI 110 — Foundations of AI Engineering. AI assistants (ChatGPT, Gemini) were used as design collaborators; all code was reviewed, tested, and refactored by the student.
