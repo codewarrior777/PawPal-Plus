@@ -15,6 +15,7 @@ class Task:
     due_date: date
     completed: bool = False
     frequency: Literal["once", "daily", "weekly"] = "once"
+    priority: Literal["high", "medium", "low"] = "medium"
 
     def mark_complete(self) -> None:
         """Mark the task as completed."""
@@ -28,6 +29,7 @@ class Task:
             "due_date": self.due_date.isoformat(),
             "completed": self.completed,
             "frequency": self.frequency,
+            "priority": self.priority,
         }
 
     @classmethod
@@ -39,6 +41,7 @@ class Task:
             due_date=date.fromisoformat(data["due_date"]),
             completed=data.get("completed", False),
             frequency=data.get("frequency", "once"),
+            priority=data.get("priority", "medium"),
         )
 
 
@@ -116,9 +119,25 @@ class Owner:
 class Scheduler:
     """Provides utility methods for sorting, filtering, and checking schedules."""
 
+    # Priority ranking — smaller number = higher priority
+    _PRIORITY_ORDER: dict[str, int] = {"high": 0, "medium": 1, "low": 2}
+
     def sort_by_time(self, tasks: list[Task]) -> list[Task]:
         """Return tasks sorted chronologically by their time attribute."""
         return sorted(tasks, key=lambda t: t.time)
+
+    def sort_by_priority(self, tasks: list[Task]) -> list[Task]:
+        """
+        Return tasks sorted by priority (high -> medium -> low).
+        Within the same priority, tasks are sorted by time.
+        """
+        return sorted(
+            tasks,
+            key=lambda t: (
+                self._PRIORITY_ORDER.get(t.priority, 1),
+                t.time,
+            ),
+        )
 
     def filter_by_completion(
         self, tasks: list[Task], completed: bool = True
@@ -162,6 +181,7 @@ class Scheduler:
             due_date=next_date,
             completed=False,
             frequency=task.frequency,
+            priority=task.priority,
         )
 
 
@@ -170,24 +190,13 @@ class Scheduler:
 # ----------------------------------------------------------------------
 
 def save_owner_to_json(owner: Owner, filepath: str) -> None:
-    """
-    Serialize an Owner (and all its pets and tasks) to a JSON file.
-
-    Args:
-        owner: The Owner instance to save.
-        filepath: Destination file path (e.g. "data.json").
-    """
+    """Serialize an Owner (and all its pets and tasks) to a JSON file."""
     with open(filepath, "w", encoding="utf-8") as f:
         json.dump(owner.to_dict(), f, indent=4, ensure_ascii=False)
 
 
 def load_owner_from_json(filepath: str) -> Owner:
-    """
-    Load an Owner from a JSON file.
-
-    If the file does not exist, returns a new empty Owner named "Alex"
-    so the app can start cleanly on first run.
-    """
+    """Load an Owner from a JSON file, or return a fresh one if missing."""
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             data = json.load(f)
