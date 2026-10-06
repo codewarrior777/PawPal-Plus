@@ -229,6 +229,44 @@ class Scheduler:
 
         return "None available today"
 
+    def detect_overlaps(
+        self, tasks: list[Task]
+    ) -> list[tuple[Task, Task]]:
+        """
+        Return pairs of tasks whose 30-minute time windows overlap.
+
+        Assumes each task occupies 30 minutes (Task has no duration field).
+
+        Args:
+            tasks: List of Task objects with .time in "HH:MM" format.
+
+        Returns:
+            List of (task_a, task_b) tuples where task_b starts before
+            task_a's window ends.
+        """
+
+        def to_minutes(time_str: str) -> int:
+            hours, minutes = map(int, time_str.split(":"))
+            return hours * 60 + minutes
+
+        sorted_tasks = sorted(tasks, key=lambda t: to_minutes(t.time))
+        overlaps: list[tuple[Task, Task]] = []
+
+        for i, task_a in enumerate(sorted_tasks):
+            start_a = to_minutes(task_a.time)
+            end_a = start_a + 30
+
+            for task_b in sorted_tasks[i + 1:]:
+                start_b = to_minutes(task_b.time)
+
+                # Sorted list → once we pass task_a's window, no more overlaps
+                if start_b >= end_a:
+                    break
+
+                overlaps.append((task_a, task_b))
+
+        return overlaps
+
 
 # ----------------------------------------------------------------------
 # JSON Persistence (Stretch Feature)
