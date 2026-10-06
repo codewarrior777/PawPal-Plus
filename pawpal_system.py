@@ -1,7 +1,7 @@
 """Module for managing pets, tasks, owners, and scheduling in PawPal+."""
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from typing import Literal
 
 
@@ -17,7 +17,7 @@ class Task:
 
     def mark_complete(self) -> None:
         """Mark the task as completed."""
-        raise NotImplementedError
+        self.completed = True
 
 
 @dataclass
@@ -31,15 +31,15 @@ class Pet:
 
     def add_task(self, task: Task) -> None:
         """Add a new care task to the pet's task list."""
-        raise NotImplementedError
+        self.tasks.append(task)
 
     def get_tasks(self) -> list[Task]:
         """Retrieve all tasks associated with this pet."""
-        raise NotImplementedError
+        return self.tasks
 
     def get_incomplete_tasks(self) -> list[Task]:
         """Retrieve pending tasks that are not yet marked as completed."""
-        raise NotImplementedError
+        return [t for t in self.tasks if not t.completed]
 
 
 @dataclass
@@ -51,11 +51,11 @@ class Owner:
 
     def add_pet(self, pet: Pet) -> None:
         """Register a new pet under this owner."""
-        raise NotImplementedError
+        self.pets.append(pet)
 
     def get_all_tasks(self) -> list[Task]:
         """Retrieve a combined list of all tasks across all owned pets."""
-        raise NotImplementedError
+        return [task for pet in self.pets for task in pet.tasks]
 
 
 class Scheduler:
@@ -63,26 +63,48 @@ class Scheduler:
 
     def sort_by_time(self, tasks: list[Task]) -> list[Task]:
         """Return tasks sorted chronologically by their time attribute."""
-        raise NotImplementedError
+        return sorted(tasks, key=lambda t: t.time)
 
     def filter_by_completion(
         self, tasks: list[Task], completed: bool = True
     ) -> list[Task]:
         """Filter tasks based on their completion status."""
-        raise NotImplementedError
+        return [t for t in tasks if t.completed == completed]
 
     def filter_by_pet_name(
         self, owner: Owner, pet_name: str
     ) -> list[Task]:
         """Filter tasks belonging to a specific pet by name."""
-        raise NotImplementedError
+        for pet in owner.pets:
+            if pet.name == pet_name:
+                return pet.get_tasks()
+        return []
 
     def detect_conflicts(
         self, tasks: list[Task]
     ) -> list[tuple[Task, Task]]:
         """Identify and return pairs of tasks scheduled for the same time."""
-        raise NotImplementedError
+        conflicts: list[tuple[Task, Task]] = []
+        n = len(tasks)
+        for i in range(n):
+            for j in range(i + 1, n):
+                if tasks[i].time == tasks[j].time:
+                    conflicts.append((tasks[i], tasks[j]))
+        return conflicts
 
     def handle_recurring(self, task: Task) -> Task | None:
         """Generate the next iteration for recurring daily or weekly tasks."""
-        raise NotImplementedError
+        if task.frequency == "daily":
+            next_date = task.due_date + timedelta(days=1)
+        elif task.frequency == "weekly":
+            next_date = task.due_date + timedelta(days=7)
+        else:
+            return None
+
+        return Task(
+            description=task.description,
+            time=task.time,
+            due_date=next_date,
+            completed=False,
+            frequency=task.frequency,
+        )
