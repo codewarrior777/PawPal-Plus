@@ -1,5 +1,13 @@
+"""CLI demo for PawPal+ showing sorting, filtering, conflicts, and recurrence.
+
+Uses the `tabulate` library for structured ASCII tables.
+"""
+
 from datetime import date
-from pawpal_system import Task, Pet, Owner, Scheduler
+
+from tabulate import tabulate
+
+from pawpal_system import Owner, Pet, Scheduler, Task
 
 
 def main() -> None:
@@ -54,60 +62,115 @@ def main() -> None:
     cooper.add_task(task3)
     cooper.add_task(task4)
 
-    print("==================================================")
+    print("=" * 60)
     print(f"🐾 WELCOME TO PAWPAL+ DEMO | Owner: {owner.name} 🐾")
-    print("==================================================\n")
+    print("=" * 60)
 
     # Gather all tasks across pets
     all_tasks = owner.get_all_tasks()
 
-    # --- Feature 1: Sorted Schedule ---
-    print("📅 TODAY'S SCHEDULE (Sorted by Time)")
-    print("--------------------------------------------------")
+    # Helper: map each task to its pet's name
+    def pet_for(task: Task) -> str:
+        for pet in owner.pets:
+            if task in pet.tasks:
+                return pet.name
+        return "Unknown"
+
+    # ------------------------------------------------------------------
+    # Feature 1: Sorted Schedule (tabulate table)
+    # ------------------------------------------------------------------
+    print("\n📅 TODAY'S SCHEDULE (Sorted by Time)\n")
     sorted_tasks = scheduler.sort_by_time(all_tasks)
-    for task in sorted_tasks:
-        status = "✅ Done" if task.completed else "⏳ Pending"
-        print(f"  • [{task.time}] {task.description:<20} ({status})")
-    print()
+    schedule_rows = [
+        [
+            t.time,
+            t.description,
+            pet_for(t),
+            t.frequency,
+            "✅ Done" if t.completed else "⏳ Pending",
+        ]
+        for t in sorted_tasks
+    ]
+    print(
+        tabulate(
+            schedule_rows,
+            headers=["Time", "Task", "Pet", "Frequency", "Status"],
+            tablefmt="fancy_grid",
+        )
+    )
 
-    # --- Feature 2: Incomplete Tasks ---
-    print("⏳ INCOMPLETE TASKS")
-    print("--------------------------------------------------")
+    # ------------------------------------------------------------------
+    # Feature 2: Incomplete Tasks
+    # ------------------------------------------------------------------
+    print("\n⏳ INCOMPLETE TASKS\n")
     incomplete = scheduler.filter_by_completion(all_tasks, completed=False)
-    for task in incomplete:
-        print(f"  • [{task.time}] {task.description}")
-    print()
+    incomplete_rows = [
+        [t.time, t.description, pet_for(t)] for t in incomplete
+    ]
+    print(
+        tabulate(
+            incomplete_rows,
+            headers=["Time", "Task", "Pet"],
+            tablefmt="fancy_grid",
+        )
+    )
 
-    # --- Feature 3: Schedule Conflicts ---
-    print("⚠️ CONFLICTS DETECTED")
-    print("--------------------------------------------------")
+    # ------------------------------------------------------------------
+    # Feature 3: Schedule Conflicts
+    # ------------------------------------------------------------------
+    print("\n⚠️  CONFLICTS DETECTED\n")
     conflicts = scheduler.detect_conflicts(all_tasks)
     if conflicts:
-        for t1, t2 in conflicts:
-            print(f"  🚨 Time Collision at {t1.time}:")
-            print(f"     - {t1.description}")
-            print(f"     - {t2.description}")
+        conflict_rows = [
+            [t1.time, t1.description, pet_for(t1), t2.description, pet_for(t2)]
+            for t1, t2 in conflicts
+        ]
+        print(
+            tabulate(
+                conflict_rows,
+                headers=["Time", "Task A", "Pet A", "Task B", "Pet B"],
+                tablefmt="fancy_grid",
+            )
+        )
     else:
-        print("  No schedule conflicts detected!")
-    print()
+        print("  ✅ No schedule conflicts detected!")
 
-    # --- Feature 4: Filter Tasks by Pet Name ---
-    print("🐶 COOPER'S TASKS")
-    print("--------------------------------------------------")
+    # ------------------------------------------------------------------
+    # Feature 4: Filter Tasks by Pet Name
+    # ------------------------------------------------------------------
+    print("\n🐶 COOPER'S TASKS\n")
     coopers_tasks = scheduler.filter_by_pet_name(owner, "Cooper")
-    for task in coopers_tasks:
-        status = "✅" if task.completed else "❌"
-        print(f"  • {status} [{task.time}] {task.description}")
-    print()
+    cooper_rows = [
+        [t.time, t.description, "✅" if t.completed else "❌"]
+        for t in coopers_tasks
+    ]
+    print(
+        tabulate(
+            cooper_rows,
+            headers=["Time", "Task", "Done?"],
+            tablefmt="fancy_grid",
+        )
+    )
 
-    # --- Feature 5: Demo Recurring Task Handler ---
-    print("🔄 RECURRING TASK GENERATION")
-    print("--------------------------------------------------")
+    # ------------------------------------------------------------------
+    # Feature 5: Demo Recurring Task Handler
+    # ------------------------------------------------------------------
+    print("\n🔄 RECURRING TASK GENERATION\n")
     next_walk = scheduler.handle_recurring(task1)
     if next_walk:
-        print(f"  Original: {task1.description} on {task1.due_date}")
-        print(f"  Next Due: {next_walk.description} on {next_walk.due_date}")
-    print("\n==================================================")
+        recurring_rows = [
+            ["Original", task1.description, str(task1.due_date)],
+            ["Next Due", next_walk.description, str(next_walk.due_date)],
+        ]
+        print(
+            tabulate(
+                recurring_rows,
+                headers=["", "Task", "Due Date"],
+                tablefmt="fancy_grid",
+            )
+        )
+
+    print("\n" + "=" * 60)
 
 
 if __name__ == "__main__":
