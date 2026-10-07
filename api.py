@@ -78,6 +78,16 @@ class OwnerCreate(BaseModel):
     name: str = Field(..., min_length=1, examples=["Gustavo"])
 
 
+class ParseTaskRequest(BaseModel):
+    """Payload to parse natural language into a task."""
+
+    text: str = Field(
+        ...,
+        min_length=1,
+        examples=["walk Cooper at 7am daily, high priority"],
+    )
+
+
 # ----------------------------------------------------------------------
 # Helpers
 # ----------------------------------------------------------------------
@@ -259,6 +269,32 @@ def get_next_slot(duration: int = 30):
         owner.get_all_tasks(), duration_minutes=duration
     )
     return {"duration_minutes": duration, "next_available_slot": slot}
+
+
+# ----------------------------------------------------------------------
+# Natural Language Parsing (AI)
+# ----------------------------------------------------------------------
+@app.post("/api/parse-task", tags=["AI"])
+def parse_task_endpoint(payload: ParseTaskRequest):
+    """
+    Convert natural language into a structured task.
+
+    Example:
+        Input: "walk Cooper at 7am daily, high priority"
+        Output: {description: "Walk Cooper", time: "07:00",
+                 frequency: "daily", priority: "high", pet_name: "Cooper"}
+    """
+    from nl_parser import parse_task as _parse
+
+    owner = _state["owner"]
+    known_pets = [p.name for p in owner.pets]
+
+    try:
+        parsed = _parse(payload.text, known_pets)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    return parsed.to_dict()
 
 
 # ----------------------------------------------------------------------
