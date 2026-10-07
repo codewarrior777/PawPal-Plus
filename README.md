@@ -86,6 +86,13 @@ python main.py
 python -m streamlit run app.py
 ```
 
+### Run the FastAPI REST API
+
+```bash
+uvicorn api:app --reload
+# Swagger docs at http://127.0.0.1:8000/docs
+```
+
 ### Run the tests
 
 ```bash
@@ -210,25 +217,65 @@ The CLI demo (`main.py`) uses the [`tabulate`](https://pypi.org/project/tabulate
 
 ---
 
+## 🌐 REST API (FastAPI)
+
+PawPal+ also exposes a **FastAPI REST API** with auto-generated Swagger documentation:
+
+```bash
+uvicorn api:app --reload
+# → http://127.0.0.1:8000/docs
+```
+
+### Available Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/` | Health check |
+| GET | `/api/owner` | Current owner info |
+| POST | `/api/owner` | Change owner name |
+| GET | `/api/pets` | List all pets |
+| POST | `/api/pets` | Add a pet |
+| GET | `/api/pets/{name}/tasks` | Tasks for a specific pet |
+| POST | `/api/pets/{name}/tasks` | Add task to a pet |
+| GET | `/api/tasks` | List all tasks (filter by `?completed=true/false`) |
+| GET | `/api/schedule?sort=time\|priority` | Sorted schedule |
+| GET | `/api/conflicts` | Same-time conflicts |
+| GET | `/api/overlaps` | 30-min window overlaps |
+| GET | `/api/next-slot?duration=30` | Earliest available slot |
+| POST | `/api/save` | Persist to `data.json` |
+| POST | `/api/load` | Load from `data.json` |
+
+### Example
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/pets \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Cooper", "species": "Dog", "age": 4}'
+```
+
+**Interactive docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) — full Swagger UI with "Try it out" buttons.
+
+---
+
 ## 💾 JSON Persistence
 
-The Streamlit UI has **Save to JSON** and **Load from JSON** buttons in the sidebar. Data is stored in `data.json` (git-ignored).
+The CLI uses `save_owner_to_json()` and `load_owner_from_json()` for round-trip JSON serialization:
 
 ```python
 # Save the current owner + pets + tasks
 save_owner_to_json(owner, "data.json")
 
-# Load on next app start
+# Load on next run
 owner = load_owner_from_json("data.json")
 ```
 
-If `data.json` does not exist, a new empty owner is created automatically.
+**In the Streamlit UI**, users can **export** their data to a JSON file and **restore** it later via the sidebar (see Security section below).
 
 **How it works:**
 
 - Each class implements `to_dict()` / `from_dict()` for round-trip serialization.
 - `date` objects are converted to ISO strings (`"YYYY-MM-DD"`) for JSON compatibility and parsed back on load.
-- The JSON file uses `indent=4` and `ensure_ascii=False` so emojis render correctly in the file.
+- The JSON file uses `indent=4` and `ensure_ascii=False` so emojis render correctly.
 
 ---
 
@@ -241,6 +288,32 @@ The sidebar shows live stats:
 - **Bar chart** — task distribution per pet.
 
 Powered by Streamlit's built-in `st.bar_chart()`. No extra charting library needed.
+
+---
+
+## 🔒 Security Considerations
+
+**This is a public demo**, not a production application. Known limitations:
+
+1. **Session-scoped data only** — Data lives in the browser session (`st.session_state`). It is NOT stored on the server.
+2. **No authentication** — Anyone with the URL can use the app.
+3. **No PII storage** — Do NOT enter personal information. The disclaimer in the app reminds users of this.
+4. **Manual export/import** — Users can download their data as JSON and re-upload it later to persist across sessions.
+
+**What we deliberately avoided:**
+
+- ❌ **Shared server-side storage** — The initial design wrote to a single `data.json` on the server. This would have exposed every user's data to every other user.
+- ❌ **Server-side secrets** — No API keys or credentials are stored in the deployed app.
+
+**For a production version**, the roadmap includes:
+
+- User authentication (e.g., Supabase Auth, Auth0)
+- Per-user storage with row-level security
+- Encryption at rest for sensitive fields
+- Rate limiting per IP
+- Audit logging
+
+See `ARCHITECTURE.md` (ADR-007) for the full decision record.
 
 ---
 
@@ -350,7 +423,7 @@ Pre-commit hooks (`.pre-commit-config.yaml`) enforce the same checks locally bef
 
 ## 🚀 Stretch Features Completed
 
-- [x] **JSON Persistence** — Save/load the Owner, Pets, and Tasks to `data.json` via sidebar buttons. Uses `to_dict()`/`from_dict()` round-tripping with ISO dates.
+- [x] **JSON Persistence** — Save/load the Owner, Pets, and Tasks to `data.json`. Uses `to_dict()`/`from_dict()` round-tripping with ISO dates.
 - [x] **Professional UI (tabulate)** — All CLI outputs rendered as ASCII tables with `fancy_grid` format.
 - [x] **Advanced Scheduling (priority)** — `sort_by_priority()` sorts by priority (high→medium→low) then by time.
 - [x] **Agent Mode Algorithm** — `find_next_available_slot()` finds the earliest free 30/60-min window in the 06:00–22:00 working day. Bonus: `detect_overlaps()` identifies 30-minute window collisions.
@@ -359,14 +432,16 @@ Pre-commit hooks (`.pre-commit-config.yaml`) enforce the same checks locally bef
 ### Bonus Polish (Portfolio-Grade)
 
 - [x] **Live Deployment** — Public URL on Streamlit Community Cloud
+- [x] **REST API (FastAPI)** — 14 endpoints + auto-generated Swagger docs at `/docs`
 - [x] **GitHub Actions CI** — Tests + lint on Python 3.12 & 3.13
 - [x] **Pre-commit hooks** — Ruff, trailing whitespace, EOF, yaml, mixed line endings
 - [x] **Ruff** — Linter + formatter, 100% clean
 - [x] **`pyproject.toml`** — Installable package with `pawpal` CLI entry point
-- [x] **ARCHITECTURE.md** — 6 Architecture Decision Records (ADRs)
+- [x] **ARCHITECTURE.md** — 9 Architecture Decision Records (ADRs)
 - [x] **benchmark.py** — Empirical algorithm complexity comparison
 - [x] **MIT LICENSE** + **CONTRIBUTING.md**
 - [x] **First-run onboarding** — Dynamic owner name with persistence
+- [x] **Security hardening** — Session-scoped data, no shared server storage
 
 ---
 
@@ -386,13 +461,14 @@ PawPal-Plus/
 ├── tests/
 │   └── test_pawpal.py         # pytest suite (28 tests, 100% coverage)
 ├── app.py                     # Streamlit UI (deployed live)
+├── api.py                     # FastAPI REST API with Swagger docs
 ├── main.py                    # CLI demo script
 ├── pawpal_system.py           # Core domain logic (4 classes + JSON persistence)
 ├── benchmark.py               # Algorithm benchmark script
 ├── demo_output.txt            # Saved output of `python main.py`
 ├── reflection.md              # Design tradeoffs + AI collaboration notes
 ├── ai_interactions.md         # Agent workflow + AI model comparison
-├── ARCHITECTURE.md            # 6 Architecture Decision Records
+├── ARCHITECTURE.md            # 9 Architecture Decision Records
 ├── CONTRIBUTING.md            # Development workflow guide
 ├── LICENSE                    # MIT License
 ├── pyproject.toml             # Package metadata + CLI entry point
@@ -407,4 +483,20 @@ PawPal-Plus/
 
 ## 🙏 Credits
 
-Designed and built as part of **AI 110 — Foundations of AI Engineering**. AI assistants (ChatGPT, Gemini) were used as design collaborators; all code was reviewed, tested, and refactored by the student.
+Built by **Gustavo Ramos** for *AI 110 — Foundations of AI Engineering*.
+
+> *"Ship code you'd be proud to maintain."*
+
+| | |
+|---|---|
+| **Role** | Lead architect · Solo developer · Own QA |
+| **Architecture** | 4 classes · 9 ADRs · 1 UML diagram |
+| **Quality** | 28 tests · 100% coverage · 0 lint warnings |
+| **Interfaces** | 1 CLI · 1 Streamlit UI · 1 REST API |
+| **Deployment** | [Streamlit Cloud](https://pawpal-plus-esqzqdlgrnnjsezv6a7r4f.streamlit.app) (live) |
+| **Standards** | PEP 8 · PEP 257 · Conventional Commits · SemVer |
+| **Assistants** | ChatGPT & Gemini — sparring partners, not autocomplete |
+
+Every line reviewed. Every tradeoff documented. Every edge case tested.
+
+*The bugs were the curriculum.*
