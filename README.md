@@ -1,5 +1,6 @@
 # 🐾 PawPal+ — Smart Pet Care Management System
 
+[![Live Demo](https://img.shields.io/badge/demo-LIVE-brightgreen?style=for-the-badge&logo=streamlit)](https://pawpal-plus-esqzqdlgrnnjsezv6a7r4f.streamlit.app)
 [![Tests](https://img.shields.io/badge/tests-28%20passing-brightgreen)](https://github.com/codewarrior777/PawPal-Plus/actions)
 [![Lint](https://github.com/codewarrior777/PawPal-Plus/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/codewarrior777/PawPal-Plus/actions/workflows/lint.yml)
 [![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/codewarrior777/PawPal-Plus)
@@ -10,6 +11,14 @@ A CLI-first Python application for managing pets, their care tasks, and scheduli
 
 **Course:** AI 110 — Foundations of AI Engineering
 **Project:** Project 2 (PawPal+)
+
+---
+
+## 🌐 Try It Live
+
+**[▶ Open PawPal+ on Streamlit Cloud](https://pawpal-plus-esqzqdlgrnnjsezv6a7r4f.streamlit.app)**
+
+No installation needed — just click and use it in your browser.
 
 ---
 
@@ -89,6 +98,13 @@ python -m pytest -v
 python -m pytest --cov=pawpal_system --cov-report=term-missing
 ```
 
+### Install as a package (optional)
+
+```bash
+pip install -e .
+pawpal    # runs the CLI demo from anywhere
+```
+
 ---
 
 ## 📋 Sample Output
@@ -96,7 +112,7 @@ python -m pytest --cov=pawpal_system --cov-report=term-missing
 Below is the output from running `main.py` — a walkthrough of the system's core features:
 
 ```
-🐾 WELCOME TO PAWPAL+ DEMO | Owner: Gustavo
+🐾 WELCOME TO PAWPAL+ DEMO | Owner: Gustavo 🐾
 ============================================================
 
 📅 TODAY'S SCHEDULE (Sorted by Time)
@@ -222,6 +238,7 @@ The sidebar shows live stats:
 
 - **Total Tasks** — count of all tasks across all pets.
 - **Bar chart** — task distribution by priority (HIGH / MEDIUM / LOW).
+- **Bar chart** — task distribution per pet.
 
 Powered by Streamlit's built-in `st.bar_chart()`. No extra charting library needed.
 
@@ -243,6 +260,27 @@ The `Scheduler` class implements eight algorithms:
 | `find_next_available_slot(tasks, duration)` | Earliest free gap in 06:00–22:00 day | O(n log n) |
 
 See `reflection.md` for design tradeoffs and complexity notes.
+See `benchmark.py` for empirical measurements of each algorithm's scaling.
+
+---
+
+## 📈 Algorithm Benchmarks
+
+`benchmark.py` measures each algorithm at n = 10, 100, 500, 1000, 2000 tasks:
+
+```
+╒══════════════════════════════╤════════╤═════════╤═════════╤══════════╤══════════╕
+│ Algorithm                    │ n=10   │ n=100   │ n=500   │ n=1000   │ n=2000   │
+╞══════════════════════════════╪════════╪═════════╪═════════╪══════════╪══════════╡
+│ sort_by_time                 │ 0.00   │ 0.01    │ 0.15    │ 0.25     │ 0.67     │
+│ sort_by_priority             │ 0.00   │ 0.04    │ 0.26    │ 0.57     │ 1.80     │
+│ detect_conflicts (O(n²))     │ 0.01   │ 0.43    │ 9.19    │ 36.53    │ 148.00   │
+│ detect_overlaps (O(n log n)) │ 0.02   │ 0.48    │ 8.21    │ 36.05    │ 120.27   │
+│ find_next_available_slot     │ 0.01   │ 0.08    │ 0.54    │ 0.74     │ 1.64     │
+╘══════════════════════════════╧════════╧═════════╧═════════╧══════════╧══════════╛
+```
+
+The **O(n²) explosion** of `detect_conflicts` at n=2000 (148 ms vs <2 ms for the others) empirically confirms the theoretical complexity.
 
 ---
 
@@ -306,6 +344,8 @@ This project runs tests and linting on every push via GitHub Actions:
 
 Both workflows are shown as badges at the top of this README.
 
+Pre-commit hooks (`.pre-commit-config.yaml`) enforce the same checks locally before each commit.
+
 ---
 
 ## 🚀 Stretch Features Completed
@@ -315,6 +355,18 @@ Both workflows are shown as badges at the top of this README.
 - [x] **Advanced Scheduling (priority)** — `sort_by_priority()` sorts by priority (high→medium→low) then by time.
 - [x] **Agent Mode Algorithm** — `find_next_available_slot()` finds the earliest free 30/60-min window in the 06:00–22:00 working day. Bonus: `detect_overlaps()` identifies 30-minute window collisions.
 - [x] **AI Model Comparison** — Compared ChatGPT vs Gemini on the overlapping-tasks algorithm. See `ai_interactions.md` for the full comparison table.
+
+### Bonus Polish (Portfolio-Grade)
+
+- [x] **Live Deployment** — Public URL on Streamlit Community Cloud
+- [x] **GitHub Actions CI** — Tests + lint on Python 3.12 & 3.13
+- [x] **Pre-commit hooks** — Ruff, trailing whitespace, EOF, yaml, mixed line endings
+- [x] **Ruff** — Linter + formatter, 100% clean
+- [x] **`pyproject.toml`** — Installable package with `pawpal` CLI entry point
+- [x] **ARCHITECTURE.md** — 6 Architecture Decision Records (ADRs)
+- [x] **benchmark.py** — Empirical algorithm complexity comparison
+- [x] **MIT LICENSE** + **CONTRIBUTING.md**
+- [x] **First-run onboarding** — Dynamic owner name with persistence
 
 ---
 
@@ -326,21 +378,28 @@ PawPal-Plus/
 │   └── workflows/
 │       ├── tests.yml          # CI: pytest on Python 3.12 + 3.13
 │       └── lint.yml           # CI: ruff check + format
+├── .streamlit/
+│   └── config.toml            # Streamlit theme + config
 ├── diagrams/
 │   ├── README.md              # Rendered UML diagram
 │   └── uml_initial.mmd        # Mermaid source
 ├── tests/
 │   └── test_pawpal.py         # pytest suite (28 tests, 100% coverage)
-├── app.py                     # Streamlit UI
+├── app.py                     # Streamlit UI (deployed live)
 ├── main.py                    # CLI demo script
 ├── pawpal_system.py           # Core domain logic (4 classes + JSON persistence)
+├── benchmark.py               # Algorithm benchmark script
 ├── demo_output.txt            # Saved output of `python main.py`
 ├── reflection.md              # Design tradeoffs + AI collaboration notes
 ├── ai_interactions.md         # Agent workflow + AI model comparison
+├── ARCHITECTURE.md            # 6 Architecture Decision Records
+├── CONTRIBUTING.md            # Development workflow guide
+├── LICENSE                    # MIT License
+├── pyproject.toml             # Package metadata + CLI entry point
 ├── requirements.txt           # Dependencies
 ├── ruff.toml                  # Ruff linter config
+├── .pre-commit-config.yaml    # Pre-commit hooks
 ├── .gitignore
-├── .pre-commit-config.yaml    # Pre-commit hooks (optional)
 └── README.md                  # This file
 ```
 
@@ -348,4 +407,4 @@ PawPal-Plus/
 
 ## 🙏 Credits
 
-Designed and built as part of AI 110 — Foundations of AI Engineering. AI assistants (ChatGPT, Gemini) were used as design collaborators; all code was reviewed, tested, and refactored by the student.
+Designed and built as part of **AI 110 — Foundations of AI Engineering**. AI assistants (ChatGPT, Gemini) were used as design collaborators; all code was reviewed, tested, and refactored by the student.
