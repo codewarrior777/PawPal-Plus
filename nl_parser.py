@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict, dataclass
-from typing import Optional
 
 
 # ----------------------------------------------------------------------
@@ -30,7 +29,7 @@ class ParsedTask:
     time: str
     frequency: str = "once"
     priority: str = "medium"
-    pet_name: Optional[str] = None
+    pet_name: str | None = None
 
     def to_dict(self) -> dict:
         """Return a JSON-friendly dict."""
@@ -53,15 +52,15 @@ _TIME_PATTERN = re.compile(
 )
 
 _FREQUENCY_PATTERNS = [
-    (re.compile(r"\b(every\s*day|daily)\b", re.I), "daily"),
-    (re.compile(r"\b(every\s*week|weekly)\b", re.I), "weekly"),
-    (re.compile(r"\b(once|one[\s-]?time|just once)\b", re.I), "once"),
+    (re.compile(r"\b(every\s*day|daily)\b", re.IGNORECASE), "daily"),
+    (re.compile(r"\b(every\s*week|weekly)\b", re.IGNORECASE), "weekly"),
+    (re.compile(r"\b(once|one[\s-]?time|just once)\b", re.IGNORECASE), "once"),
 ]
 
 _PRIORITY_PATTERNS = [
-    (re.compile(r"\b(high|urgent|critical|important)\b", re.I), "high"),
-    (re.compile(r"\b(medium|normal|regular)\b", re.I), "medium"),
-    (re.compile(r"\b(low|minor|eventually)\b", re.I), "low"),
+    (re.compile(r"\b(high|urgent|critical|important)\b", re.IGNORECASE), "high"),
+    (re.compile(r"\b(medium|normal|regular)\b", re.IGNORECASE), "medium"),
+    (re.compile(r"\b(low|minor|eventually)\b", re.IGNORECASE), "low"),
 ]
 
 # Connective words and date modifiers that pollute the description.
@@ -82,7 +81,7 @@ _NOISE_PATTERN = re.compile(
 # ----------------------------------------------------------------------
 # Extractors
 # ----------------------------------------------------------------------
-def _extract_time(text: str) -> tuple[Optional[str], str]:
+def _extract_time(text: str) -> tuple[str | None, str]:
     """Find the first time-like token. Returns (HH:MM, cleaned_text)."""
     for match in _TIME_PATTERN.finditer(text):
         hour = int(match.group("hour"))
@@ -124,10 +123,10 @@ def _extract_priority(text: str) -> tuple[str, str]:
     return "medium", text
 
 
-def _extract_pet_name(text: str, known_pets: list[str]) -> tuple[Optional[str], str]:
+def _extract_pet_name(text: str, known_pets: list[str]) -> tuple[str | None, str]:
     """Find the first known pet name (case-insensitive)."""
     for pet in known_pets:
-        pattern = re.compile(rf"\b{re.escape(pet)}\b", re.I)
+        pattern = re.compile(rf"\b{re.escape(pet)}\b", re.IGNORECASE)
         match = pattern.search(text)
         if match:
             cleaned = text[: match.start()] + " " + text[match.end() :]
@@ -138,7 +137,7 @@ def _extract_pet_name(text: str, known_pets: list[str]) -> tuple[Optional[str], 
 # ----------------------------------------------------------------------
 # Public API
 # ----------------------------------------------------------------------
-def parse_task(text: str, known_pets: Optional[list[str]] = None) -> ParsedTask:
+def parse_task(text: str, known_pets: list[str] | None = None) -> ParsedTask:
     """
     Parse free-form text into a ParsedTask.
 
