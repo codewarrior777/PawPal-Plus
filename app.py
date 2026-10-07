@@ -1,30 +1,22 @@
-"""Streamlit UI for PawPal+ — the smart pet care management system."""
+"""Streamlit UI for PawPal+ — the smart pet care management system.
 
+SECURITY NOTE:
+    This is a public demo. User data is scoped to the browser session
+    only and is NOT stored on the server. Users can export/import their
+    data manually via the download/upload buttons.
+
+AI FEATURE:
+    The "🪄 AI Assistant" tab accepts free-form text like
+    "walk Cooper at 7am daily, high priority" and uses the regex-based
+    parser in nl_parser.py to extract a structured Task.
+"""
+
+import json
 from datetime import date
 
 import streamlit as st
 
-from pawpal_system import (
-    Owner,
-    Pet,
-    Scheduler,
-    Task,
-    load_owner_from_json,
-    save_owner_to_json,
-)
-
-
-def _get_or_create_owner() -> Owner:
-    """
-    Return the current Owner from session state.
-
-    If none exists yet, attempt to load one from data.json.
-    If data.json is missing, return an empty Owner with a placeholder name
-    so the onboarding UI can prompt for the real name.
-    """
-    if "owner" not in st.session_state:
-        st.session_state.owner = load_owner_from_json("data.json")
-    return st.session_state.owner
+from pawpal_system import Owner, Pet, Scheduler, Task
 
 
 def _is_onboarded(owner: Owner) -> bool:
@@ -32,13 +24,35 @@ def _is_onboarded(owner: Owner) -> bool:
     return bool(owner.name and owner.name.strip() and owner.name != "New User")
 
 
+def _init_session() -> None:
+    """Initialize session-scoped state (NOT persisted to server)."""
+    if "owner" not in st.session_state:
+        st.session_state.owner = Owner(name="New User")
+    if "scheduler" not in st.session_state:
+        st.session_state.scheduler = Scheduler()
+    if "ai_parsed" not in st.session_state:
+        st.session_state.ai_parsed = None
+
+
 def main() -> None:
     st.set_page_config(page_title="PawPal+", page_icon="🐾")
 
-    owner = _get_or_create_owner()
+    _init_session()
+    owner: Owner = st.session_state.owner
+    scheduler: Scheduler = st.session_state.scheduler
 
     # ------------------------------------------------------------------
-    # First-run onboarding: ask for the owner's name
+    # SECURITY DISCLAIMER
+    # ------------------------------------------------------------------
+    st.warning(
+        "⚠️ **Public demo** — Your data lives in this browser session only "
+        "and is **NOT stored on the server**. You can download it manually. "
+        "Do not enter personal information.",
+        icon="🔒",
+    )
+
+    # ------------------------------------------------------------------
+    # First-run onboarding
     # ------------------------------------------------------------------
     if not _is_onboarded(owner):
         st.title("🐾 Welcome to PawPal+")
@@ -51,28 +65,20 @@ def main() -> None:
 
             if submitted:
                 if name.strip():
-                    st.session_state.owner.name = name.strip()
-                    # NOTE: Do NOT auto-save here. That would overwrite any
-                    # existing data.json. The user must click "Save to JSON"
-                    # manually after adding their data.
+                    owner.name = name.strip()
                     st.rerun()
                 else:
                     st.error("Please enter your name.")
 
-        st.stop()  # Don't render the rest until the name is set
+        st.stop()
 
     # ------------------------------------------------------------------
-    # Main app (owner is onboarded)
+    # Main app
     # ------------------------------------------------------------------
-    scheduler: Scheduler = st.session_state.get("scheduler") or Scheduler()
-    st.session_state.scheduler = scheduler
-
     st.title(f"🐾 PawPal+ — Welcome, {owner.name}!")
     st.caption("Smart Pet Care Management System")
 
-    # ------------------------------------------------------------------
-    # Sidebar — Owner + Edit name + Reset + Persistence + Dashboard
-    # ------------------------------------------------------------------
+    # ---- Sidebar ----
     st.sidebar.header(f"👤 {owner.name}")
 
     with st.sidebar.expander("✏️ Edit name"):
@@ -80,26 +86,40 @@ def main() -> None:
         if st.button("Save name"):
             if new_name.strip():
                 owner.name = new_name.strip()
-                save_owner_to_json(owner, "data.json")
                 st.success(f"Name changed to {owner.name}")
                 st.rerun()
 
-    if st.sidebar.button("🔄 Reset System"):
+    if st.sidebar.button("🔄 Reset session"):
         st.session_state.owner = Owner(name="New User")
+        st.session_state.scheduler = Scheduler()
+        st.session_state.ai_parsed = None
         st.rerun()
 
-    # ---- JSON Persistence ----
+    # ---- Session-scoped persistence ----
     st.sidebar.markdown("---")
-    st.sidebar.subheader("💾 Persistence")
+    st.sidebar.subheader("💾 Your Data (session-only)")
 
-    if st.sidebar.button("💾 Save to JSON"):
-        save_owner_to_json(owner, "data.json")
-        st.sidebar.success("Data saved to data.json")
+    st.sidebar.download_button(
+        label="⬇️ Download my data",
+        data=json.dumps(owner.to_dict(), indent=2, ensure_ascii=False),
+        file_name=f"pawpal_{owner.name.replace(' ', '_').lower()}.json",
+        mime="application/json",
+        help="Save your pets & tasks to a JSON file on YOUR device.",
+    )
 
-    if st.sidebar.button("📂 Load from JSON"):
-        st.session_state.owner = load_owner_from_json("data.json")
-        st.sidebar.success("Data loaded from data.json")
-        st.rerun()
+    uploaded = st.sidebar.file_uploader(
+        "⬆️ Restore from file",
+        type=["json"],
+        help="Load a previously downloaded PawPal+ JSON file.",
+    )
+    if uploaded is not None:
+        try:
+            data = json.loads(uploaded.read().decode("utf-8"))
+            st.session_state.owner = Owner.from_dict(data)
+            st.sidebar.success(f"Restored {len(data.get('pets', []))} pet(s)")
+            st.rerun()
+        except Exception as e:
+            st.sidebar.error(f"Could not read file: {e}")
 
     # ---- Dashboard stats ----
     st.sidebar.markdown("---")
@@ -136,7 +156,7 @@ def main() -> None:
     else:
         st.sidebar.info("Add tasks to see stats.")
 
-    # ---- Registered pets ----
+    # ---- Registered pets list ----
     st.sidebar.markdown("---")
     st.sidebar.subheader("Registered Pets")
     if owner.pets:
@@ -148,8 +168,8 @@ def main() -> None:
     # ------------------------------------------------------------------
     # Main UI Tabs
     # ------------------------------------------------------------------
-    tab_pet, tab_task, tab_schedule = st.tabs(
-        ["🐶 Add Pet", "📝 Add Task", "📅 Today's Schedule"]
+    tab_pet, tab_task, tab_ai, tab_schedule = st.tabs(
+        ["🐶 Add Pet", "📝 Add Task", "🪄 AI Assistant", "📅 Today's Schedule"]
     )
 
     # ------------------------------------------------------------------
@@ -186,7 +206,7 @@ def main() -> None:
             st.info("No pets added yet. Use the form above to add your first pet!")
 
     # ------------------------------------------------------------------
-    # TAB 2: Add Task
+    # TAB 2: Add Task (manual)
     # ------------------------------------------------------------------
     with tab_task:
         st.subheader("Add a Task for a Pet")
@@ -230,7 +250,109 @@ def main() -> None:
                         st.error("Please enter a task description.")
 
     # ------------------------------------------------------------------
-    # TAB 3: Today's Schedule
+    # TAB 3: AI Assistant — Natural Language Parsing
+    # ------------------------------------------------------------------
+    with tab_ai:
+        st.subheader("🪄 AI Task Assistant")
+        st.write(
+            "Describe a task in natural language and let the parser "
+            "extract the details."
+        )
+
+        st.code(
+            'Examples:  "walk Cooper at 7am daily, high priority"  ·  '
+            '"feed the cat at 18:30"  ·  "vet visit tomorrow at 2pm"',
+            language="text",
+        )
+
+        if "ai_parsed" not in st.session_state:
+            st.session_state.ai_parsed = None
+
+        nl_text = st.text_input(
+            "Describe your task:",
+            placeholder="walk Cooper at 7am daily, high priority",
+            key="ai_nl_input",
+        )
+
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            parse_btn = st.button("🪄 Parse", type="primary")
+        with col2:
+            if st.button("✖ Clear"):
+                st.session_state.ai_parsed = None
+                st.rerun()
+
+        if parse_btn:
+            if not nl_text.strip():
+                st.error("Please enter some text first.")
+            else:
+                try:
+                    from nl_parser import parse_task as _parse
+
+                    known_pets = [p.name for p in owner.pets]
+                    parsed = _parse(nl_text, known_pets)
+                    st.session_state.ai_parsed = parsed
+                except ValueError as e:
+                    st.session_state.ai_parsed = None
+                    st.error(f"Could not parse: {e}")
+
+        parsed = st.session_state.ai_parsed
+        if parsed is not None:
+            st.markdown("---")
+            st.subheader("📋 Preview")
+
+            col_a, col_b = st.columns(2)
+            col_a.metric("Time", parsed.time)
+            col_b.metric("Priority", parsed.priority.upper())
+
+            col_c, col_d = st.columns(2)
+            col_c.metric("Frequency", parsed.frequency)
+            col_d.metric("Pet", parsed.pet_name or "—")
+
+            st.info(f"**Description:** {parsed.description}")
+
+            if owner.pets:
+                pet_names = [p.name for p in owner.pets]
+                default_idx = 0
+                if parsed.pet_name and parsed.pet_name in pet_names:
+                    default_idx = pet_names.index(parsed.pet_name)
+
+                target_pet_name = st.selectbox(
+                    "Add to which pet?",
+                    pet_names,
+                    index=default_idx,
+                    key="ai_target_pet",
+                )
+
+                if st.button("✅ Confirm and Add Task", type="primary"):
+                    target_pet = next(
+                        (p for p in owner.pets if p.name == target_pet_name),
+                        None,
+                    )
+                    if target_pet:
+                        new_task = Task(
+                            description=parsed.description,
+                            time=parsed.time,
+                            due_date=date.today(),
+                            frequency=parsed.frequency,
+                            priority=parsed.priority,
+                        )
+                        target_pet.add_task(new_task)
+                        st.success(
+                            f"✅ Added **'{parsed.description}'** to "
+                            f"**{target_pet.name}** at {parsed.time} "
+                            f"({parsed.priority} priority, {parsed.frequency})"
+                        )
+                        st.session_state.ai_parsed = None
+                        st.balloons()
+            else:
+                st.warning(
+                    "You need at least one pet before adding tasks. "
+                    "Go to the '🐶 Add Pet' tab first."
+                )
+
+    # ------------------------------------------------------------------
+    # TAB 4: Today's Schedule
     # ------------------------------------------------------------------
     with tab_schedule:
         st.subheader("Today's Care Schedule")
