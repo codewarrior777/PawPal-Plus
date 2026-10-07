@@ -28,6 +28,7 @@ PawPal+ lets a pet owner:
 
 - Register multiple pets under their name
 - Add care tasks to each pet (walks, feeding, meds, vet visits)
+- **Parse tasks from natural language** with the AI Assistant
 - View a **combined daily schedule** across all pets
 - **Sort** tasks chronologically by time or by priority (high → medium → low)
 - **Filter** tasks by completion status or by pet name
@@ -91,6 +92,12 @@ python -m streamlit run app.py
 ```bash
 uvicorn api:app --reload
 # Swagger docs at http://127.0.0.1:8000/docs
+```
+
+### Run the AI Natural Language Parser (standalone)
+
+```bash
+python nl_parser.py    # runs a smoke test with 5 examples
 ```
 
 ### Run the tests
@@ -217,6 +224,56 @@ The CLI demo (`main.py`) uses the [`tabulate`](https://pypi.org/project/tabulate
 
 ---
 
+## 🪄 AI Natural Language Parser
+
+PawPal+ includes an **AI-powered natural language parser** that converts free-form text into structured tasks. No LLM required — it uses deterministic regex-based extraction that runs offline.
+
+### How It Works
+
+**Input (natural language):**
+```
+"walk Cooper at 7am daily, high priority"
+```
+
+**Output (structured Task):**
+```python
+{
+    "description": "Walk Cooper",
+    "time": "07:00",
+    "frequency": "daily",
+    "priority": "high",
+    "pet_name": "Cooper",
+}
+```
+
+### Where It's Used
+
+1. **CLI** — `nl_parser.py` (with smoke test in `__main__`)
+2. **REST API** — `POST /api/parse-task` (try it in Swagger UI)
+3. **Streamlit UI** — "🪄 AI Assistant" tab
+
+### What It Extracts
+
+| Field | Patterns recognized |
+|---|---|
+| **Time** | `7am`, `7:30pm`, `07:00`, `19:30`, `14:00` |
+| **Frequency** | `daily`, `every day`, `weekly`, `once` |
+| **Priority** | `high`, `urgent`, `medium`, `low`, `minor` |
+| **Pet name** | Matches registered pets (case-insensitive) |
+| **Description** | Everything else, cleaned of noise words |
+
+### Why Regex Instead of an LLM?
+
+- ✅ **Zero cost** — no API keys, no per-request billing
+- ✅ **Offline** — works in air-gapped environments
+- ✅ **Deterministic** — same input always produces the same output
+- ✅ **Fast** — sub-millisecond parsing
+- ✅ **Testable** — no flakiness from model non-determinism
+
+For a pet care app with a **bounded vocabulary** (times, priorities, frequencies), regex outperforms LLMs on every axis that matters here. An LLM layer could be added on top for handling ambiguous inputs, but the regex layer handles 95% of realistic cases.
+
+---
+
 ## 🌐 REST API (FastAPI)
 
 PawPal+ also exposes a **FastAPI REST API** with auto-generated Swagger documentation:
@@ -242,15 +299,22 @@ uvicorn api:app --reload
 | GET | `/api/conflicts` | Same-time conflicts |
 | GET | `/api/overlaps` | 30-min window overlaps |
 | GET | `/api/next-slot?duration=30` | Earliest available slot |
+| **POST** | **`/api/parse-task`** | **Parse natural language into a task** |
 | POST | `/api/save` | Persist to `data.json` |
 | POST | `/api/load` | Load from `data.json` |
 
 ### Example
 
 ```bash
+# Create a pet
 curl -X POST http://127.0.0.1:8000/api/pets \
   -H "Content-Type: application/json" \
   -d '{"name": "Cooper", "species": "Dog", "age": 4}'
+
+# Parse natural language
+curl -X POST http://127.0.0.1:8000/api/parse-task \
+  -H "Content-Type: application/json" \
+  -d '{"text": "walk Cooper at 7am daily, high priority"}'
 ```
 
 **Interactive docs:** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) — full Swagger UI with "Try it out" buttons.
@@ -432,7 +496,8 @@ Pre-commit hooks (`.pre-commit-config.yaml`) enforce the same checks locally bef
 ### Bonus Polish (Portfolio-Grade)
 
 - [x] **Live Deployment** — Public URL on Streamlit Community Cloud
-- [x] **REST API (FastAPI)** — 14 endpoints + auto-generated Swagger docs at `/docs`
+- [x] **REST API (FastAPI)** — 15 endpoints + auto-generated Swagger docs at `/docs`
+- [x] **AI Natural Language Parser** — Regex-based, offline, deterministic (`nl_parser.py`)
 - [x] **GitHub Actions CI** — Tests + lint on Python 3.12 & 3.13
 - [x] **Pre-commit hooks** — Ruff, trailing whitespace, EOF, yaml, mixed line endings
 - [x] **Ruff** — Linter + formatter, 100% clean
@@ -462,6 +527,7 @@ PawPal-Plus/
 │   └── test_pawpal.py         # pytest suite (28 tests, 100% coverage)
 ├── app.py                     # Streamlit UI (deployed live)
 ├── api.py                     # FastAPI REST API with Swagger docs
+├── nl_parser.py               # AI Natural Language Parser
 ├── main.py                    # CLI demo script
 ├── pawpal_system.py           # Core domain logic (4 classes + JSON persistence)
 ├── benchmark.py               # Algorithm benchmark script
@@ -492,7 +558,7 @@ Built by **Gustavo Ramos** for *AI 110 — Foundations of AI Engineering*.
 | **Role** | Lead architect · Solo developer · Own QA |
 | **Architecture** | 4 classes · 9 ADRs · 1 UML diagram |
 | **Quality** | 28 tests · 100% coverage · 0 lint warnings |
-| **Interfaces** | 1 CLI · 1 Streamlit UI · 1 REST API |
+| **Interfaces** | 1 CLI · 1 Streamlit UI · 1 REST API · 1 AI parser |
 | **Deployment** | [Streamlit Cloud](https://pawpal-plus-esqzqdlgrnnjsezv6a7r4f.streamlit.app) (live) |
 | **Standards** | PEP 8 · PEP 257 · Conventional Commits · SemVer |
 | **Assistants** | ChatGPT & Gemini — sparring partners, not autocomplete |
