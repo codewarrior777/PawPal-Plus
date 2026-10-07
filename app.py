@@ -83,11 +83,10 @@ def main() -> None:
 
     with st.sidebar.expander("✏️ Edit name"):
         new_name = st.text_input("New name", value=owner.name, key="edit_name_input")
-        if st.button("Save name"):
-            if new_name.strip():
-                owner.name = new_name.strip()
-                st.success(f"Name changed to {owner.name}")
-                st.rerun()
+        if st.button("Save name") and new_name.strip():
+            owner.name = new_name.strip()
+            st.success(f"Name changed to {owner.name}")
+            st.rerun()
 
     if st.sidebar.button("🔄 Reset session"):
         st.session_state.owner = Owner(name="New User")
@@ -118,7 +117,13 @@ def main() -> None:
             st.session_state.owner = Owner.from_dict(data)
             st.sidebar.success(f"Restored {len(data.get('pets', []))} pet(s)")
             st.rerun()
-        except Exception as e:
+        except (
+            json.JSONDecodeError,
+            UnicodeDecodeError,
+            KeyError,
+            TypeError,
+            ValueError,
+        ) as e:
             st.sidebar.error(f"Could not read file: {e}")
 
     # ---- Dashboard stats ----
