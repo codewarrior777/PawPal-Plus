@@ -43,7 +43,7 @@ Store the `Owner` and `Scheduler` instances in `st.session_state`.
 **Consequences:**
 - ✅ Adding pets / tasks persists across UI interactions.
 - ✅ JSON save/load integrates naturally by replacing `session_state.owner`.
-- ⚠️ The "Reset System" button must explicitly reset `session_state.owner`.
+- ⚠️ The "Reset" button must explicitly reset `session_state.owner`.
 
 ---
 
